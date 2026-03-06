@@ -160,38 +160,45 @@ fn run_gui_thread(
 
     // Run until vogui app blocks on waitForEvent().
     // Returns SuspendedForHostEvents once the main fiber blocks.
-    vogui::clear_pending_render();
-    vogui::clear_event_state();
+    vm.clear_host_output();
     if let Err(e) = vm.run() {
         let _ = render_tx.send(Err(format!("{:?}", e)));
         return;
     }
 
-    let bytes = vogui::take_pending_render_bytes().unwrap_or_default();
+    let bytes = vm.take_host_output().unwrap_or_default();
     let _ = render_tx.send(Ok(bytes));
 
     // Event loop: blocked waiting for events from the IDE thread.
     // Each event wakes the main fiber (blocked on waitForEvent), which processes
     // the event and blocks again. No new fiber is spawned per event.
     while let Ok((handler_id, payload)) = event_rx.recv() {
-        vogui::clear_pending_render();
+        vm.clear_host_output();
         vo_runtime::output::clear_output();
 
-        let token = match vogui::send_event(handler_id, payload) {
-            Some(t) => t,
+        // Find the pending host event token (from waitForEvent's HostEventWaitAndReplay)
+        let pending = vm.scheduler.take_pending_host_events();
+        let token = match pending.first() {
+            Some(ev) => ev.token,
             None => {
                 let _ = render_tx.send(Err("Main fiber not waiting for events".to_string()));
                 return;
             }
         };
 
-        vm.scheduler.wake_host_event(token);
+        // Encode event data: [i32 handler_id LE][UTF-8 payload]
+        // This matches what waitForEvent expects in take_resume_host_event_data()
+        let mut data = Vec::with_capacity(4 + payload.len());
+        data.extend_from_slice(&handler_id.to_le_bytes());
+        data.extend_from_slice(payload.as_bytes());
+        vm.wake_host_event_with_data(token, data);
+
         if let Err(e) = vm.run_scheduled() {
             let _ = render_tx.send(Err(format!("{:?}", e)));
             return;
         }
 
-        let bytes = vogui::take_pending_render_bytes().unwrap_or_default();
+        let bytes = vm.take_host_output().unwrap_or_default();
         let _ = render_tx.send(Ok(bytes));
     }
     // event_rx closed (StopGui dropped the sender) — thread exits cleanly.

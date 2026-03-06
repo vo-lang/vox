@@ -9,26 +9,32 @@ description = "Vox - compile, run, and inspect Vo programs"
 vomod = "../vo.mod"
 
 [features]
-default = ["jit"]
+default = ["native", "jit"]
+native = [
+    "vo-engine", "vo-vm", "vo-runtime", "vo-stdlib",
+    "vo-ext", "vo-ffi-macro", "vo-common", "vo-syntax", "vo-module",
+    "vogui", "linkme",
+]
 ffi = []
 jit = ["vo-vm/jit", "vo-engine/jit"]
 gc-debug = ["vo-runtime/gc-debug"]
+wasm-standalone = []
 
 [lib]
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
-vo-engine = { git = "https://github.com/vo-lang/volang", default-features = false }
-vo-vm = { git = "https://github.com/vo-lang/volang" }
-vo-runtime = { git = "https://github.com/vo-lang/volang" }
-vo-stdlib = { git = "https://github.com/vo-lang/volang", features = ["std"] }
-vo-ext = { git = "https://github.com/vo-lang/volang" }
-vo-ffi-macro = { git = "https://github.com/vo-lang/volang" }
-vo-common = { git = "https://github.com/vo-lang/volang" }
-vo-syntax = { git = "https://github.com/vo-lang/volang" }
-vo-module = { git = "https://github.com/vo-lang/volang" }
-vogui = { git = "https://github.com/vo-lang/vogui", default-features = false }
-linkme = "0.3"
+vo-engine = { git = "https://github.com/vo-lang/volang", default-features = false, optional = true }
+vo-vm = { git = "https://github.com/vo-lang/volang", optional = true }
+vo-runtime = { git = "https://github.com/vo-lang/volang", optional = true }
+vo-stdlib = { git = "https://github.com/vo-lang/volang", features = ["std"], optional = true }
+vo-ext = { git = "https://github.com/vo-lang/volang", optional = true }
+vo-ffi-macro = { git = "https://github.com/vo-lang/volang", optional = true }
+vo-common = { git = "https://github.com/vo-lang/volang", optional = true }
+vo-syntax = { git = "https://github.com/vo-lang/volang", optional = true }
+vo-module = { git = "https://github.com/vo-lang/volang", optional = true }
+vogui = { git = "https://github.com/vo-lang/vogui", default-features = false, optional = true }
+linkme = { version = "0.3", optional = true }
 
 [workspace]
 
