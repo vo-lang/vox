@@ -34,7 +34,7 @@ pub fn ensure_linked() {
 }
 
 #[cfg(not(feature = "wasm-standalone"))]
-pub use vo_engine::{compile, compile_with_cache, compile_string, CompileError, CompileOutput};
+pub use vo_engine::{compile, compile_with_cache, compile_string, compile_with_auto_install, CompileError, CompileOutput};
 #[cfg(not(feature = "wasm-standalone"))]
 pub use vo_engine::{run, run_with_output, RunMode, RunError, RuntimeError, RuntimeErrorKind};
 #[cfg(not(feature = "wasm-standalone"))]
