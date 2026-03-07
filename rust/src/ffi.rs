@@ -494,7 +494,7 @@ fn runner_run_gui(ctx: &mut ExternCallContext) -> ExternResult {
     };
 
     match crate::gui::run_gui(stored.into()) {
-        Ok((bytes, handle)) => {
+        Ok((bytes, handle, _push)) => {
             let guest_id = crate::gui::store_guest_handle(handle);
             crate::gui::set_module_guest(module_id, guest_id);
             ctx.ret_bytes(slots::RET_0, &bytes);
@@ -525,7 +525,7 @@ fn runner_send_gui_event(ctx: &mut ExternCallContext) -> ExternResult {
     };
 
     let result = crate::gui::with_guest_handle(guest_id, |handle| {
-        crate::gui::send_gui_event(handle, handler_id, &payload)
+        handle.send_event(handler_id, &payload)
     });
 
     match result {
