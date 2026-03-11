@@ -27,10 +27,27 @@
 #![cfg(not(target_arch = "wasm32"))]
 
 use std::collections::HashMap;
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{mpsc, Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 use vo_engine::CompileOutput;
 use vo_vm::vm::Vm;
+
+pub trait NativeExtensionHost: Send + Sync {
+    fn configure_loaded_extensions(
+        &self,
+        loader: &vo_runtime::ext_loader::ExtensionLoader,
+    ) -> Result<(), String>;
+}
+
+static NATIVE_EXTENSION_HOST: OnceLock<Arc<dyn NativeExtensionHost>> = OnceLock::new();
+
+pub fn install_native_extension_host(host: Arc<dyn NativeExtensionHost>) -> Result<(), Arc<dyn NativeExtensionHost>> {
+    NATIVE_EXTENSION_HOST.set(host)
+}
+
+fn native_extension_host() -> Option<&'static Arc<dyn NativeExtensionHost>> {
+    NATIVE_EXTENSION_HOST.get()
+}
 
 // =============================================================================
 // Vogui event IDs (must match vogui/event.vo and vogui/canvas.vo)
@@ -346,8 +363,12 @@ fn build_gui_vm(output: CompileOutput) -> Result<Vm, String> {
         Some(loader)
     };
 
+    if let (Some(loader), Some(host)) = (ext_loader.as_ref(), native_extension_host()) {
+        host.configure_loaded_extensions(loader)?;
+    }
+
     let mut vm = Vm::new();
-    vm.load_with_extensions(output.module, ext_loader.as_ref());
+    vm.load_with_extensions(output.module, ext_loader);
     Ok(vm)
 }
 
