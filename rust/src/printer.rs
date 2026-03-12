@@ -364,10 +364,6 @@ impl<'a> AstPrinter<'a> {
                 }
                 write!(self.output, "}}").unwrap();
             }
-            TypeExprKind::Port(elem) => {
-                write!(self.output, "port ").unwrap();
-                self.write_type_inline(elem);
-            }
             TypeExprKind::Island => {
                 write!(self.output, "island").unwrap();
             }
